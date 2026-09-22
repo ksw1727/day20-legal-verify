@@ -49,6 +49,25 @@ http://localhost:8000 에서 두 가지 방식으로 검증할 수 있습니다.
 
 진행 단계(답변 준비 → 조문 조회 → Jev 검증)는 Server-Sent Events로 실시간 표시되고, 결과 JSON은 `reports/`에 저장됩니다. API 키는 서버의 `.env`에서만 읽습니다.
 
+## 배포 (Vercel)
+
+- 프로덕션: https://day20-legal-verify.vercel.app
+- 저장소: https://github.com/ksw1727/day20-legal-verify
+
+Vercel이 FastAPI를 네이티브로 인식하며 진입점은 `api/index.py`입니다. 서버리스 파일시스템이 읽기 전용이라
+legalize 캐시는 `/tmp`로, 리포트 저장은 비활성화됩니다. `legalize`는 바이너리가 아닌 `python -m legalize_cli`로 호출합니다.
+
+배포 후 Vercel 대시보드 → Settings → Environment Variables 에 아래를 등록하고 재배포하면 동작합니다.
+
+| 이름 | 설명 |
+|---|---|
+| `TYPESAFE_API_KEY` | Jev 호출 (필수) |
+| `GPT_API_KEY` 또는 `OPENAI_API_KEY` | 답변 생성·주장 추출 (필수) |
+| `OPENAI_MODEL` | 기본 gpt-5.4 (선택) |
+| `GITHUB_TOKEN` | legalize-kr 조회 시 GitHub API 제한 완화 (선택, 권장) |
+
+CLI로는 `vercel env add TYPESAFE_API_KEY production` 처럼 추가할 수 있습니다. `/api/health`에서 조문 조회와 키 설정 여부를 확인할 수 있습니다.
+
 ## 판정 규칙 (legal_verify/verdict.py)
 
 | Jev 답 | 판정 |

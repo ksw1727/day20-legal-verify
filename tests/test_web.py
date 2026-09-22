@@ -100,3 +100,23 @@ def test_server_config_reads_host_and_port_from_env(monkeypatch):
     monkeypatch.setenv("HOST", "0.0.0.0")
     monkeypatch.setenv("PORT", "10000")
     assert server_config() == ("0.0.0.0", 10000)
+
+
+def test_health_reports_statute_lookup_ok():
+    from legal_verify.sources import ArticleSource
+
+    src = ArticleSource("민법", "제750조", "법률", "본문", "2026-03-17", "2026-03-17", "https://law", "kr/민법/법률.md")
+    app = create_app(pipeline=_fake_pipeline, save_dir=None, fetch=lambda law, art: src)
+    r = TestClient(app).get("/api/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["legalize"] == "ok"
+    assert body["statute"] == {"law": "민법", "article": "제750조", "version_date": "2026-03-17"}
+    assert body["keys"] == {"typesafe": False, "openai": False}
+
+
+def test_health_reports_statute_lookup_failure_with_503():
+    app = create_app(pipeline=_fake_pipeline, save_dir=None, fetch=lambda law, art: None)
+    r = TestClient(app).get("/api/health")
+    assert r.status_code == 503
+    assert r.json()["legalize"] == "failed"

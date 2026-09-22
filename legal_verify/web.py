@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import queue
 import threading
 from collections.abc import Callable, Iterator
@@ -11,10 +12,11 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from legal_verify.pipeline import Report, run_pipeline
+from legal_verify.sources import ArticleSource, fetch_article_cached
 
 STATIC_DIR = Path(__file__).parent / "static"
 _DONE = object()
@@ -48,12 +50,40 @@ def _save(report: Report, save_dir: Path) -> Path:
     return path
 
 
-def create_app(*, pipeline: Callable[..., Report] = run_pipeline, save_dir: Path | None = Path("reports")) -> FastAPI:
+HEALTH_STATUTE = ("민법", "제750조")  # a stable article used to prove statute lookup works on this host
+
+
+def create_app(
+    *,
+    pipeline: Callable[..., Report] = run_pipeline,
+    save_dir: Path | None = Path("reports"),
+    fetch: Callable[[str, str], ArticleSource | None] = fetch_article_cached,
+) -> FastAPI:
     app = FastAPI(title="법률 AI 답변 검증기")
 
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html", media_type="text/html")
+
+    @app.get("/api/health")
+    def health() -> JSONResponse:
+        """Checks the legalize subprocess + network path and reports which API keys are configured (never their values)."""
+        try:
+            src = fetch(*HEALTH_STATUTE)
+            error = None
+        except Exception as exc:  # subprocess or parsing failure
+            src, error = None, str(exc)
+        body: dict[str, Any] = {
+            "legalize": "ok" if src else "failed",
+            "statute": {"law": src.law, "article": src.article, "version_date": src.version_date} if src else None,
+            "keys": {
+                "typesafe": bool(os.environ.get("TYPESAFE_API_KEY")),
+                "openai": bool(os.environ.get("OPENAI_API_KEY") or os.environ.get("GPT_API_KEY")),
+            },
+        }
+        if error:
+            body["error"] = error
+        return JSONResponse(body, status_code=200 if src else 503)
 
     @app.post("/api/verify")
     def verify(req: VerifyRequest) -> StreamingResponse:
