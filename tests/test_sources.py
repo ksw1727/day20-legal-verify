@@ -108,3 +108,17 @@ def test_fetch_article_with_multiple_citations_returns_none_if_any_missing():
         return 0, json.dumps({"law": "근로기준법", "category": "법률", "content": "본문"}, ensure_ascii=False), ""
 
     assert fetch_article("근로기준법", "제11조, 제999조", run=run) is None
+
+
+def test_legalize_command_uses_python_module_and_cache_dir_env(monkeypatch):
+    import sys
+
+    from legal_verify.sources import legalize_command
+
+    monkeypatch.delenv("LEGALIZE_CACHE_DIR", raising=False)
+    assert legalize_command(["laws", "article", "민법", "제750조", "--json"]) == [
+        sys.executable, "-m", "legalize_cli", "laws", "article", "민법", "제750조", "--json",
+    ]
+    monkeypatch.setenv("LEGALIZE_CACHE_DIR", "/tmp/lz")
+    cmd = legalize_command(["laws", "article", "민법", "제750조", "--json"])
+    assert cmd[-2:] == ["--cache-dir", "/tmp/lz"]

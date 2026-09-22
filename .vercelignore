@@ -1,0 +1,10 @@
+.venv
+.env
+reports
+tests
+samples
+.pytest_cache
+Dockerfile
+.dockerignore
+render.yaml
+.claude

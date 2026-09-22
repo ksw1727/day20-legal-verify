@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
@@ -63,11 +64,22 @@ def _github_token() -> str | None:
     return None
 
 
+def legalize_command(args: list[str]) -> list[str]:
+    """Invoke legalize-cli as a module of the current interpreter (works where no `legalize` binary is on PATH).
+
+    LEGALIZE_CACHE_DIR redirects its disk cache, needed on read-only hosts such as Vercel (/tmp is writable).
+    """
+    cmd = [sys.executable, "-m", "legalize_cli", *args]
+    if cache_dir := os.environ.get("LEGALIZE_CACHE_DIR"):
+        cmd += ["--cache-dir", cache_dir]
+    return cmd
+
+
 def run_legalize(args: list[str]) -> tuple[int, str, str]:
     env = dict(os.environ)
     if token := _github_token():
         env["GITHUB_TOKEN"] = token
-    proc = subprocess.run(["legalize", *args], capture_output=True, text=True, env=env, timeout=120)
+    proc = subprocess.run(legalize_command(args), capture_output=True, text=True, env=env, timeout=120)
     return proc.returncode, proc.stdout, proc.stderr
 
 
