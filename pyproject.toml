@@ -1,0 +1,30 @@
+[project]
+name = "legal-verify"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.141.1",
+    "openai>=3.17.0",
+    "python-dotenv>=1.2.3",
+    "rich>=15.0.0",
+    "typesafe-sdk>=0.7.1",
+    "uvicorn[standard]>=0.53.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+]
+
+[project.scripts]
+legal-verify = "legal_verify.cli:main"
+legal-verify-web = "legal_verify.web:main"
+
+[build-system]
+requires = ["uv_build>=0.8"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "legal_verify"
+module-root = ""

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "legal-verify-web",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "legal-verify-web"],
+      "port": 8000
+    }
+  ]
+}

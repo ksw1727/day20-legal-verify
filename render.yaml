@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: legal-verify
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: TYPESAFE_API_KEY
+        sync: false
+      - key: GPT_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.4
+      - key: GITHUB_TOKEN
+        sync: false
